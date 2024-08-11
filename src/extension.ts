@@ -1,26 +1,74 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
+import * as path from 'path';
+import * as fs from 'fs';
 
-// This method is called when your extension is activated
-// Your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
+    console.log('Congratulations, your extension "file-orchestrator" is now active!');
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "file-orchestrator" is now active!');
+    const renameFileCommand = vscode.commands.registerCommand('file-orchestrator.renameFile', async () => {
+        const editor = vscode.window.activeTextEditor;
+        if (!editor) {
+            vscode.window.showErrorMessage('No active file to rename');
+            return;
+        }
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	const disposable = vscode.commands.registerCommand('file-orchestrator.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from File Orchestrator!');
-	});
+        const currentFilePath = editor.document.uri.fsPath;
+        const currentFileName = path.basename(currentFilePath);
+        const currentFileNameWithoutExt = path.parse(currentFileName).name;
+        const currentDir = path.dirname(currentFilePath);
 
-	context.subscriptions.push(disposable);
+        const config = vscode.workspace.getConfiguration('fileOrchestrator');
+        const defaultExtensions = config.get<string[]>('defaultExtensions') || [];
+        const customExtensionLists = config.get<{ [key: string]: string[] }>('customExtensionLists') || {};
+
+        const extensionLists = {
+            'Default': defaultExtensions,
+            ...customExtensionLists
+        };
+
+        const selectedList = await vscode.window.showQuickPick(
+            Object.keys(extensionLists),
+            { placeHolder: 'Select extension list to apply' }
+        );
+
+        if (!selectedList) return;
+
+        const selectedExtensions = extensionLists[selectedList];
+
+        const newFileName = await vscode.window.showInputBox({
+            prompt: 'Enter new file name',
+            value: currentFileNameWithoutExt,
+            validateInput: (value) => {
+                return value && value !== currentFileNameWithoutExt ? null : 'Please enter a new file name';
+            }
+        });
+
+        if (newFileName) {
+            const filesToRename = getRelatedFiles(currentDir, currentFileNameWithoutExt, selectedExtensions);
+
+            for (const file of filesToRename) {
+                const oldPath = path.join(currentDir, file);
+                const newPath = path.join(currentDir, `${newFileName}${path.extname(file)}`);
+                
+                try {
+                    await vscode.workspace.fs.rename(vscode.Uri.file(oldPath), vscode.Uri.file(newPath));
+                    vscode.window.showInformationMessage(`File renamed: ${file} -> ${path.basename(newPath)}`);
+                } catch (error) {
+                    vscode.window.showErrorMessage(`Failed to rename file ${file}: ${error}`);
+                }
+            }
+        }
+    });
+
+    context.subscriptions.push(renameFileCommand);
 }
 
-// This method is called when your extension is deactivated
+function getRelatedFiles(dir: string, baseName: string, extensions: string[]): string[] {
+    return fs.readdirSync(dir)
+        .filter(file => {
+            const { name, ext } = path.parse(file);
+            return name === baseName && extensions.includes(ext);
+        });
+}
+
 export function deactivate() {}

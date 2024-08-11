@@ -14,10 +14,47 @@
   "contributes": {
     "commands": [
       {
-        "command": "file-orchestrator.helloWorld",
-        "title": "Hello World"
+        "command": "file-orchestrator.renameFile",
+        "title": "Rename File"
       }
-    ]
+    ],
+    "configuration": {
+      "title": "File Orchestrator",
+      "properties": {
+        "fileOrchestrator.defaultExtensions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            ".js",
+            ".ts",
+            ".css",
+            ".html"
+          ],
+          "description": "Default list of file extensions to consider as related files for renaming."
+        },
+        "fileOrchestrator.customExtensionLists": {
+          "type": "object",
+          "default": {
+            "React": [
+              ".js",
+              ".jsx",
+              ".ts",
+              ".tsx",
+              ".css"
+            ],
+            "Vue": [
+              ".vue",
+              ".js",
+              ".ts",
+              ".css"
+            ]
+          },
+          "description": "Custom lists of file extensions for different project types."
+        }
+      }
+    }
   },
   "scripts": {
     "vscode:prepublish": "npm run package",
