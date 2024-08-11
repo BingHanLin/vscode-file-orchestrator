@@ -1,71 +1,96 @@
-# file-orchestrator README
+# File Orchestrator
 
-This is the README for your extension "file-orchestrator". After writing up a brief description, we recommend including the following sections.
+File Orchestrator is a powerful VS Code extension that simplifies file management operations for related files in your projects. It allows you to rename, copy, move, and delete files while automatically handling associated files with different extensions.
 
 ## Features
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+-   **Rename Files**: Rename a file and all its related files with different extensions.
+-   **Copy Files**: Create copies of a file and its related files.
+-   **Move Files**: Move a file and its related files to a different directory, with an option to rename.
+-   **Delete Files**: Remove a file and all its related files.
+-   **Customizable Extension Lists**: Define and use custom lists of related file extensions.
 
-For example if there is an image subfolder under your extension project workspace:
+## Installation
 
-\!\[feature X\]\(images/feature-x.png\)
+1. Open VS Code
+2. Go to the Extensions view (Ctrl+Shift+X or Cmd+Shift+X)
+3. Search for "File Orchestrator"
+4. Click Install
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+## Usage
 
-## Requirements
+### Commands
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+File Orchestrator adds the following commands to the Command Palette (Ctrl+Shift+P or Cmd+Shift+P):
 
-## Extension Settings
+-   `File Orchestrator: Rename File`
+-   `File Orchestrator: Copy File`
+-   `File Orchestrator: Move File`
+-   `File Orchestrator: Delete File`
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+### Workflow
 
-For example:
+1. Open a file in the editor.
+2. Run one of the File Orchestrator commands.
+3. Select the extension list to apply (Default or custom lists).
+4. Follow the prompts to complete the operation.
 
-This extension contributes the following settings:
+### Extension Lists
 
-* `myExtension.enable`: Enable/disable this extension.
-* `myExtension.thing`: Set to `blah` to do something.
+File Orchestrator uses extension lists to determine which related files to include in operations. You can configure these lists in your VS Code settings.
 
-## Known Issues
+#### Default Extensions
 
-Calling out known issues can help limit users opening duplicate issues against your extension.
+Set the default extensions in your `settings.json`:
 
-## Release Notes
+```json
+{
+    "fileOrchestrator.defaultExtensions": [".js", ".ts", ".css", ".html"]
+}
+```
 
-Users appreciate release notes as you update your extension.
+#### Custom Extension Lists
 
-### 1.0.0
+Define custom extension lists for different project types:
 
-Initial release of ...
+```json
+{
+    "fileOrchestrator.customExtensionLists": {
+        "React": [".js", ".jsx", ".ts", ".tsx", ".css"],
+        "Vue": [".vue", ".js", ".ts", ".css"]
+    }
+}
+```
 
-### 1.0.1
+## Examples
 
-Fixed issue #.
+### Renaming a React Component
 
-### 1.1.0
+1. Open `MyComponent.tsx`
+2. Run `File Orchestrator: Rename File`
+3. Select the "React" extension list
+4. Enter the new name, e.g., "NewComponent"
+5. The extension will rename:
+    - `MyComponent.tsx` to `NewComponent.tsx`
+    - `MyComponent.css` to `NewComponent.css`
+    - `MyComponent.test.js` to `NewComponent.test.js`
 
-Added features X, Y, and Z.
+### Moving a Vue Component
 
----
+1. Open `OldComponent.vue`
+2. Run `File Orchestrator: Move File`
+3. Select the "Vue" extension list
+4. Enter the target directory (relative to workspace root)
+5. Choose whether to rename the file
+6. The extension will move:
+    - `OldComponent.vue`
+    - `OldComponent.js`
+    - `OldComponent.css`
 
-## Following extension guidelines
+## Contributing
 
-Ensure that you've read through the extensions guidelines and follow the best practices for creating your extension.
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-* [Extension Guidelines](https://code.visualstudio.com/api/references/extension-guidelines)
+## License
 
-## Working with Markdown
-
-You can author your README using Visual Studio Code. Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux).
-* Toggle preview (`Shift+Cmd+V` on macOS or `Shift+Ctrl+V` on Windows and Linux).
-* Press `Ctrl+Space` (Windows, Linux, macOS) to see a list of Markdown snippets.
-
-## For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
-
-**Enjoy!**
+This extension is licensed under the [MIT License](LICENSE).
