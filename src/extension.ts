@@ -37,14 +37,22 @@ async function orchestrateFiles(action: 'rename' | 'copy') {
         ...customExtensionLists
     };
 
-    const selectedList = await vscode.window.showQuickPick(
-        Object.keys(extensionLists),
-        { placeHolder: 'Select extension list to apply' }
+    const quickPickItems = Object.entries(extensionLists).map(([name, extensions]) => ({
+        label: name,
+        description: extensions.join(', ')
+    }));
+
+    const selectedItem = await vscode.window.showQuickPick(
+        quickPickItems,
+        { 
+            placeHolder: 'Select extension list to apply',
+            matchOnDescription: true
+        }
     );
 
-    if (!selectedList) return;
+    if (!selectedItem) return;
 
-    const selectedExtensions = extensionLists[selectedList as keyof typeof extensionLists];
+    const selectedExtensions = extensionLists[selectedItem.label];
 
     const newFileName = await vscode.window.showInputBox({
         prompt: `Enter new file name for ${action}`,
