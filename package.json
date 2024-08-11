@@ -15,7 +15,11 @@
     "commands": [
       {
         "command": "file-orchestrator.renameFile",
-        "title": "Rename File"
+        "title": "File Orchestrator: Rename File"
+      },
+      {
+        "command": "file-orchestrator.copyFile",
+        "title": "File Orchestrator: Copy File"
       }
     ],
     "configuration": {

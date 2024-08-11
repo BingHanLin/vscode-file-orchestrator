@@ -6,61 +6,73 @@ export function activate(context: vscode.ExtensionContext) {
     console.log('Congratulations, your extension "file-orchestrator" is now active!');
 
     const renameFileCommand = vscode.commands.registerCommand('file-orchestrator.renameFile', async () => {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage('No active file to rename');
-            return;
-        }
+        await orchestrateFiles('rename');
+    });
 
-        const currentFilePath = editor.document.uri.fsPath;
-        const currentFileName = path.basename(currentFilePath);
-        const currentFileNameWithoutExt = path.parse(currentFileName).name;
-        const currentDir = path.dirname(currentFilePath);
+    const copyFileCommand = vscode.commands.registerCommand('file-orchestrator.copyFile', async () => {
+        await orchestrateFiles('copy');
+    });
 
-        const config = vscode.workspace.getConfiguration('fileOrchestrator');
-        const defaultExtensions = config.get<string[]>('defaultExtensions') || [];
-        const customExtensionLists = config.get<{ [key: string]: string[] }>('customExtensionLists') || {};
+    context.subscriptions.push(renameFileCommand, copyFileCommand);
+}
 
-        const extensionLists = {
-            'Default': defaultExtensions,
-            ...customExtensionLists
-        };
+async function orchestrateFiles(action: 'rename' | 'copy') {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage(`No active file to ${action}`);
+        return;
+    }
 
-        const selectedList = await vscode.window.showQuickPick(
-            Object.keys(extensionLists),
-            { placeHolder: 'Select extension list to apply' }
-        );
+    const currentFilePath = editor.document.uri.fsPath;
+    const currentFileName = path.basename(currentFilePath);
+    const currentFileNameWithoutExt = path.parse(currentFileName).name;
+    const currentDir = path.dirname(currentFilePath);
 
-        if (!selectedList) return;
+    const config = vscode.workspace.getConfiguration('fileOrchestrator');
+    const defaultExtensions = config.get<string[]>('defaultExtensions') || [];
+    const customExtensionLists = config.get<{ [key: string]: string[] }>('customExtensionLists') || {};
 
-        const selectedExtensions = extensionLists[selectedList];
+    const extensionLists = {
+        'Default': defaultExtensions,
+        ...customExtensionLists
+    };
 
-        const newFileName = await vscode.window.showInputBox({
-            prompt: 'Enter new file name',
-            value: currentFileNameWithoutExt,
-            validateInput: (value) => {
-                return value && value !== currentFileNameWithoutExt ? null : 'Please enter a new file name';
-            }
-        });
+    const selectedList = await vscode.window.showQuickPick(
+        Object.keys(extensionLists),
+        { placeHolder: 'Select extension list to apply' }
+    );
 
-        if (newFileName) {
-            const filesToRename = getRelatedFiles(currentDir, currentFileNameWithoutExt, selectedExtensions);
+    if (!selectedList) return;
 
-            for (const file of filesToRename) {
-                const oldPath = path.join(currentDir, file);
-                const newPath = path.join(currentDir, `${newFileName}${path.extname(file)}`);
-                
-                try {
-                    await vscode.workspace.fs.rename(vscode.Uri.file(oldPath), vscode.Uri.file(newPath));
-                    vscode.window.showInformationMessage(`File renamed: ${file} -> ${path.basename(newPath)}`);
-                } catch (error) {
-                    vscode.window.showErrorMessage(`Failed to rename file ${file}: ${error}`);
-                }
-            }
+    const selectedExtensions = extensionLists[selectedList as keyof typeof extensionLists];
+
+    const newFileName = await vscode.window.showInputBox({
+        prompt: `Enter new file name for ${action}`,
+        value: currentFileNameWithoutExt,
+        validateInput: (value) => {
+            return value && value !== currentFileNameWithoutExt ? null : `Please enter a new file name for ${action}`;
         }
     });
 
-    context.subscriptions.push(renameFileCommand);
+    if (newFileName) {
+        const filesToProcess = getRelatedFiles(currentDir, currentFileNameWithoutExt, selectedExtensions);
+
+        for (const file of filesToProcess) {
+            const oldPath = path.join(currentDir, file);
+            const newPath = path.join(currentDir, `${newFileName}${path.extname(file)}`);
+            
+            try {
+                if (action === 'rename') {
+                    await vscode.workspace.fs.rename(vscode.Uri.file(oldPath), vscode.Uri.file(newPath));
+                } else {
+                    await vscode.workspace.fs.copy(vscode.Uri.file(oldPath), vscode.Uri.file(newPath), { overwrite: false });
+                }
+                vscode.window.showInformationMessage(`File ${action}d: ${file} -> ${path.basename(newPath)}`);
+            } catch (error) {
+                vscode.window.showErrorMessage(`Failed to ${action} file ${file}: ${error}`);
+            }
+        }
+    }
 }
 
 function getRelatedFiles(dir: string, baseName: string, extensions: string[]): string[] {
