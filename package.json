@@ -3,6 +3,8 @@
   "displayName": "File Orchestrator",
   "description": "Efficiently manage related files in your projects. Rename, copy, move, and delete files while automatically handling associated files with different extensions. Customizable for various project types and file structures.",
   "version": "0.0.1",
+  "publisher": "binghanlin",
+  "icon": "images/icon.png",
   "engines": {
     "vscode": "^1.92.0"
   },

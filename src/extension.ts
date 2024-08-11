@@ -48,7 +48,7 @@ async function orchestrateFiles(action: 'rename' | 'copy' | 'delete' | 'move') {
     const defaultExtensions = config.get<string[]>('defaultExtensions') || [];
     const customExtensionLists = config.get<{ [key: string]: string[] }>('customExtensionLists') || {};
 
-    const extensionLists = {
+    const extensionLists: { [key: string]: string[] } = {
         'Default': defaultExtensions,
         ...customExtensionLists
     };
