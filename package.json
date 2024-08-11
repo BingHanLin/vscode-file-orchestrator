@@ -20,6 +20,14 @@
       {
         "command": "file-orchestrator.copyFile",
         "title": "File Orchestrator: Copy File"
+      },
+      {
+        "command": "file-orchestrator.deleteFile",
+        "title": "File Orchestrator: Delete File"
+      },
+      {
+        "command": "file-orchestrator.moveFile",
+        "title": "File Orchestrator: Move File"
       }
     ],
     "configuration": {
@@ -53,6 +61,10 @@
               ".js",
               ".ts",
               ".css"
+            ],
+            "Cpp": [
+              ".cpp",
+              ".hpp"
             ]
           },
           "description": "Custom lists of file extensions for different project types."

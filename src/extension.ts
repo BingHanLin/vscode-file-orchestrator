@@ -13,10 +13,18 @@ export function activate(context: vscode.ExtensionContext) {
         await orchestrateFiles('copy');
     });
 
-    context.subscriptions.push(renameFileCommand, copyFileCommand);
+    const deleteFileCommand = vscode.commands.registerCommand('file-orchestrator.deleteFile', async () => {
+        await orchestrateFiles('delete');
+    });
+
+    const moveFileCommand = vscode.commands.registerCommand('file-orchestrator.moveFile', async () => {
+        await orchestrateFiles('move');
+    });
+
+    context.subscriptions.push(renameFileCommand, copyFileCommand, deleteFileCommand, moveFileCommand);
 }
 
-async function orchestrateFiles(action: 'rename' | 'copy') {
+async function orchestrateFiles(action: 'rename' | 'copy' | 'delete' | 'move') {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage(`No active file to ${action}`);
@@ -27,6 +35,14 @@ async function orchestrateFiles(action: 'rename' | 'copy') {
     const currentFileName = path.basename(currentFilePath);
     const currentFileNameWithoutExt = path.parse(currentFileName).name;
     const currentDir = path.dirname(currentFilePath);
+    const workspaceFolder = vscode.workspace.getWorkspaceFolder(editor.document.uri);
+
+    if (!workspaceFolder) {
+        vscode.window.showErrorMessage('File is not part of a workspace');
+        return;
+    }
+
+    const workspacePath = workspaceFolder.uri.fsPath;
 
     const config = vscode.workspace.getConfiguration('fileOrchestrator');
     const defaultExtensions = config.get<string[]>('defaultExtensions') || [];
@@ -54,31 +70,70 @@ async function orchestrateFiles(action: 'rename' | 'copy') {
 
     const selectedExtensions = extensionLists[selectedItem.label];
 
-    const newFileName = await vscode.window.showInputBox({
-        prompt: `Enter new file name for ${action}`,
-        value: currentFileNameWithoutExt,
-        validateInput: (value) => {
-            return value && value !== currentFileNameWithoutExt ? null : `Please enter a new file name for ${action}`;
-        }
-    });
+    let newFileName: string | undefined;
+    let targetDir: string | undefined;
 
-    if (newFileName) {
-        const filesToProcess = getRelatedFiles(currentDir, currentFileNameWithoutExt, selectedExtensions);
-
-        for (const file of filesToProcess) {
-            const oldPath = path.join(currentDir, file);
-            const newPath = path.join(currentDir, `${newFileName}${path.extname(file)}`);
-            
-            try {
-                if (action === 'rename') {
-                    await vscode.workspace.fs.rename(vscode.Uri.file(oldPath), vscode.Uri.file(newPath));
-                } else {
-                    await vscode.workspace.fs.copy(vscode.Uri.file(oldPath), vscode.Uri.file(newPath), { overwrite: false });
+    if (action === 'rename' || action === 'copy' || action === 'move') {
+        const prompt = `Enter new file name ${action === 'move' ? 'for' : 'to'} ${action} ${currentFileName}`;
+        newFileName = await vscode.window.showInputBox({
+            prompt,
+            value: currentFileNameWithoutExt,
+            validateInput: (value) => {
+                if (!value) return `Please enter a new file name for ${action}`;
+                if (action !== 'move' && value === currentFileNameWithoutExt) {
+                    return `Please enter a new file name for ${action}`;
                 }
-                vscode.window.showInformationMessage(`File ${action}d: ${file} -> ${path.basename(newPath)}`);
-            } catch (error) {
-                vscode.window.showErrorMessage(`Failed to ${action} file ${file}: ${error}`);
+                return null;
             }
+        });
+        if (!newFileName) return;
+    }
+
+
+
+    if (action === 'move') {
+        const relativeCurrentDir = path.relative(workspacePath, currentDir);
+        targetDir = await vscode.window.showInputBox({
+            prompt: 'Enter target directory (relative to workspace root)',
+            value: relativeCurrentDir,
+            validateInput: (value) => {
+                const absolutePath = path.join(workspacePath, value);
+                return fs.existsSync(absolutePath) ? null : 'Directory does not exist';
+            }
+        });
+        if (!targetDir) return;
+        targetDir = path.join(workspacePath, targetDir);
+    }
+
+    const filesToProcess = getRelatedFiles(currentDir, currentFileNameWithoutExt, selectedExtensions);
+
+    for (const file of filesToProcess) {
+        const oldPath = path.join(currentDir, file);
+        let newPath: string | undefined;
+
+        if (newFileName) {
+            newPath = path.join(action === 'move' ? targetDir! : currentDir, `${newFileName}${path.extname(file)}`);
+        }
+
+        try {
+            switch (action) {
+                case 'rename':
+                    await vscode.workspace.fs.rename(vscode.Uri.file(oldPath), vscode.Uri.file(newPath!));
+                    break;
+                case 'copy':
+                    await vscode.workspace.fs.copy(vscode.Uri.file(oldPath), vscode.Uri.file(newPath!), { overwrite: false });
+                    break;
+                case 'delete':
+                    await vscode.workspace.fs.delete(vscode.Uri.file(oldPath));
+                    break;
+                case 'move':
+                    await vscode.workspace.fs.rename(vscode.Uri.file(oldPath), vscode.Uri.file(newPath!));
+                    break;
+            }
+            const actionPastTense = action === 'copy' ? 'copied' : `${action}d`;
+            vscode.window.showInformationMessage(`File ${actionPastTense}: ${file}${newPath ? ` -> ${path.relative(workspacePath, newPath)}` : ''}`);
+        } catch (error) {
+            vscode.window.showErrorMessage(`Failed to ${action} file ${file}: ${error}`);
         }
     }
 }
