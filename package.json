@@ -58,32 +58,26 @@
             "type": "string"
           },
           "default": [
-            ".js",
-            ".ts",
-            ".css",
-            ".html"
+            ".cpp",
+            ".hpp",
+            ".cxx",
+            ".hxx",
+            ".c",
+            ".h"
           ],
           "description": "Default list of file extensions to consider as related files for renaming."
         },
         "fileOrchestrator.customExtensionLists": {
           "type": "object",
           "default": {
-            "React": [
-              ".js",
-              ".jsx",
-              ".ts",
-              ".tsx",
-              ".css"
-            ],
-            "Vue": [
-              ".vue",
-              ".js",
-              ".ts",
-              ".css"
-            ],
-            "Cpp": [
+            "Qt-Cpp": [
               ".cpp",
-              ".hpp"
+              ".hpp",
+              ".cxx",
+              ".hxx",
+              ".c",
+              ".h",
+              ".ui"
             ]
           },
           "description": "Custom lists of file extensions for different project types."

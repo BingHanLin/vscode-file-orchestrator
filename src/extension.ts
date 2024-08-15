@@ -227,13 +227,20 @@ async function jumpToRelatedFile() {
         return;
     }
 
-    const items = relatedFiles.map((file) => ({
-        label: file,
-        description: path.extname(file),
-    }));
+    const items = relatedFiles.map((file) => {
+        const fullPath = path.join(currentDir, file);
+        const relativePath = path.relative(workspacePath, fullPath);
+        return {
+            label: file,
+            description: path.extname(file),
+            detail: relativePath, // This will show the full path relative to the workspace root
+        };
+    });
 
     const selectedFile = await vscode.window.showQuickPick(items, {
         placeHolder: "Select a file to jump to",
+        matchOnDescription: true,
+        matchOnDetail: true,
     });
 
     if (selectedFile) {
