@@ -13,6 +13,7 @@ export function activate(context: vscode.ExtensionContext) {
         { name: "deleteFile", action: deleteFiles },
         { name: "moveFile", action: moveFiles },
         { name: "createFile", action: createFiles },
+        { name: "jumpToRelatedFile", action: jumpToRelatedFile }, // New command
     ];
 
     commands.forEach(({ name, action }) => {
@@ -22,6 +23,53 @@ export function activate(context: vscode.ExtensionContext) {
         );
         context.subscriptions.push(command);
     });
+
+    // Register the configurable keybinding
+    context.subscriptions.push(
+        vscode.commands.registerCommand(
+            "file-orchestrator.updateJumpToRelatedFileShortcut",
+            updateJumpToRelatedFileShortcut
+        )
+    );
+
+    // Initial setup of the keybinding
+    updateJumpToRelatedFileShortcut();
+}
+
+async function updateJumpToRelatedFileShortcut() {
+    const config = vscode.workspace.getConfiguration("fileOrchestrator");
+    const shortcut = config.get<string>("jumpToRelatedFileShortcut") || "alt+p";
+
+    await vscode.commands.executeCommand(
+        "setContext",
+        "fileOrchestrator.jumpToRelatedFileShortcut",
+        shortcut
+    );
+
+    // Update keybindings.json
+    const keybindings = (await vscode.commands.executeCommand(
+        "getConfiguration",
+        "keybindings"
+    )) as any[];
+    const existingBinding = keybindings.find(
+        (kb: any) => kb.command === "file-orchestrator.jumpToRelatedFile"
+    );
+
+    if (existingBinding) {
+        existingBinding.key = shortcut;
+    } else {
+        keybindings.push({
+            key: shortcut,
+            command: "file-orchestrator.jumpToRelatedFile",
+            when: "editorTextFocus",
+        });
+    }
+
+    await vscode.commands.executeCommand(
+        "updateConfiguration",
+        "keybindings",
+        keybindings
+    );
 }
 
 async function renameFiles() {
@@ -156,6 +204,42 @@ async function createFiles() {
     for (const ext of selectedExtensions) {
         const newPath = path.join(targetDir, `${newFileName}${ext}`);
         await processFile("create", undefined, newPath, workspacePath);
+    }
+}
+
+async function jumpToRelatedFile() {
+    const {
+        currentDir,
+        currentFileNameWithoutExt,
+        selectedExtensions,
+        workspacePath,
+    } = await getCommonInfo();
+    if (!currentDir) return;
+
+    const relatedFiles = getRelatedFiles(
+        currentDir,
+        currentFileNameWithoutExt,
+        selectedExtensions
+    );
+
+    if (relatedFiles.length === 0) {
+        vscode.window.showInformationMessage("No related files found.");
+        return;
+    }
+
+    const items = relatedFiles.map((file) => ({
+        label: file,
+        description: path.extname(file),
+    }));
+
+    const selectedFile = await vscode.window.showQuickPick(items, {
+        placeHolder: "Select a file to jump to",
+    });
+
+    if (selectedFile) {
+        const filePath = path.join(currentDir, selectedFile.label);
+        const document = await vscode.workspace.openTextDocument(filePath);
+        await vscode.window.showTextDocument(document);
     }
 }
 

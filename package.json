@@ -1,7 +1,7 @@
 {
   "name": "file-orchestrator",
   "displayName": "File Orchestrator",
-  "description": "Efficiently manage related files in your projects. Rename, copy, move, and delete files while automatically handling associated files with different extensions. Customizable for various project types and file structures.",
+  "description": "Efficiently manage related files in your projects. Rename, copy, move, delete files while automatically handling associated files with different extensions. Customizable for various project types and file structures.",
   "version": "0.0.1",
   "publisher": "binghanlin",
   "repository": "https://github.com/BingHanLin/vscode-file-orchestrator",
@@ -35,6 +35,18 @@
       {
         "command": "file-orchestrator.createFile",
         "title": "File Orchestrator: Create File"
+      },
+      {
+        "command": "file-orchestrator.jumpToRelatedFile",
+        "title": "File Orchestrator: Jump To Related File"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "file-orchestrator.jumpToRelatedFile",
+        "key": "alt+p",
+        "mac": "alt+p",
+        "when": "editorTextFocus"
       }
     ],
     "configuration": {
@@ -75,6 +87,11 @@
             ]
           },
           "description": "Custom lists of file extensions for different project types."
+        },
+        "fileOrchestrator.jumpToRelatedFileShortcut": {
+          "type": "string",
+          "default": "alt+p",
+          "description": "Keyboard shortcut for jumping to related files. Use the format 'ctrl+key', 'shift+key', etc."
         }
       }
     }
