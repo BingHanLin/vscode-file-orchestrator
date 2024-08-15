@@ -74,13 +74,15 @@ async function updateJumpToRelatedFileShortcut() {
 }
 
 async function renameFiles() {
+    const commonInfo = await getCommonInfo("rename");
+    if (!commonInfo) return;
+
     const {
         currentDir,
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo("rename");
-    if (!currentDir) return;
+    } = commonInfo;
 
     const newFileName = await promptForNewFileName(
         "rename",
@@ -309,12 +311,39 @@ async function promptForExtensions(action: string) {
         ...customExtensionLists,
     };
 
-    const quickPickItems = Object.entries(extensionLists).map(
-        ([name, extensions]) => ({
+    let quickPickItems: { label: string; description: string }[];
+
+    if (action === "create") {
+        // For create action, show all extension lists
+        quickPickItems = Object.entries(extensionLists).map(
+            ([name, extensions]) => ({
+                label: name,
+                description: extensions.join(", "),
+            })
+        );
+    } else {
+        // For other actions, filter based on active file's extension
+        const activeEditor = vscode.window.activeTextEditor;
+        const activeFileExtension = activeEditor
+            ? path.extname(activeEditor.document.fileName)
+            : "";
+
+        const filteredExtensionLists = Object.entries(extensionLists).filter(
+            ([_, extensions]) => extensions.includes(activeFileExtension)
+        );
+
+        if (filteredExtensionLists.length === 0) {
+            vscode.window.showWarningMessage(
+                `No extension lists found containing ${activeFileExtension}. Command aborted.`
+            );
+            return undefined;
+        }
+
+        quickPickItems = filteredExtensionLists.map(([name, extensions]) => ({
             label: name,
             description: extensions.join(", "),
-        })
-    );
+        }));
+    }
 
     const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
         placeHolder: `Select extension list to ${action}`,
@@ -329,11 +358,11 @@ async function promptForNewFileName(action: string, currentName = "") {
         prompt: `Enter new file name to ${action}`,
         value: currentName,
         validateInput: (value) => {
-            if (!value) return `Please enter a new file name to ${action}`;
             if (
-                action !== "move" &&
-                action !== "create" &&
-                value === currentName
+                !value ||
+                (action !== "move" &&
+                    action !== "create" &&
+                    value === currentName)
             ) {
                 return `Please enter a new file name to ${action}`;
             }
@@ -346,16 +375,24 @@ async function promptForTargetDirectory(
     workspacePath: string,
     defaultValue = ""
 ) {
-    return vscode.window.showInputBox({
+    const userInput = await vscode.window.showInputBox({
         prompt: "Enter target directory (relative to workspace root)",
         value: defaultValue,
         validateInput: (value) => {
             const absolutePath = path.join(workspacePath, value);
-            return fs.existsSync(absolutePath)
-                ? null
-                : "Directory does not exist";
+            if (fs.existsSync(absolutePath)) {
+                return null;
+            } else {
+                return `Directory ${absolutePath} does not exist.`;
+            }
         },
     });
+
+    if (userInput === undefined) {
+        return undefined;
+    }
+
+    return path.join(workspacePath, userInput);
 }
 
 async function processFile(
