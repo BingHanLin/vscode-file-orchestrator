@@ -31,6 +31,10 @@
       {
         "command": "file-orchestrator.moveFile",
         "title": "File Orchestrator: Move File"
+      },
+      {
+        "command": "file-orchestrator.createFile",
+        "title": "File Orchestrator: Create File"
       }
     ],
     "configuration": {
