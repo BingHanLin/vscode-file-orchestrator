@@ -2,7 +2,7 @@
   "name": "file-orchestrator",
   "displayName": "File Orchestrator",
   "description": "Efficiently manage related files in your projects. Rename, copy, move, delete files while automatically handling associated files with different extensions. Customizable for various project types and file structures.",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "publisher": "binghanlin",
   "repository": "https://github.com/BingHanLin/vscode-file-orchestrator",
   "icon": "images/icon.png",

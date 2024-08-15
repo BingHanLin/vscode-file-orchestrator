@@ -89,20 +89,19 @@ async function renameFiles() {
         currentFileNameWithoutExt
     );
     if (!newFileName) return;
-
     const filesToProcess = getRelatedFiles(
-        currentDir,
-        currentFileNameWithoutExt,
-        selectedExtensions
+        currentDir!,
+        currentFileNameWithoutExt!,
+        selectedExtensions!
     );
 
     for (const file of filesToProcess) {
-        const oldPath = path.join(currentDir, file);
+        const oldPath = path.join(currentDir!, file);
         const newPath = path.join(
-            currentDir,
+            currentDir!,
             `${newFileName}${path.extname(file)}`
         );
-        await processFile("rename", oldPath, newPath, workspacePath);
+        await processFile("rename", oldPath, newPath, workspacePath!);
     }
 }
 
@@ -123,7 +122,7 @@ async function copyFiles() {
 
     const filesToProcess = getRelatedFiles(
         currentDir,
-        currentFileNameWithoutExt,
+        currentFileNameWithoutExt!,
         selectedExtensions
     );
 
@@ -148,7 +147,7 @@ async function deleteFiles() {
 
     const filesToProcess = getRelatedFiles(
         currentDir,
-        currentFileNameWithoutExt,
+        currentFileNameWithoutExt!,
         selectedExtensions
     );
 
@@ -181,7 +180,7 @@ async function moveFiles() {
 
     const filesToProcess = getRelatedFiles(
         currentDir,
-        currentFileNameWithoutExt,
+        currentFileNameWithoutExt!,
         selectedExtensions
     );
 
@@ -201,12 +200,12 @@ async function createFiles() {
     const newFileName = await promptForNewFileName("create");
     if (!newFileName) return;
 
-    const targetDir = await promptForTargetDirectory(workspacePath);
+    const targetDir = await promptForTargetDirectory(workspacePath!);
     if (!targetDir) return;
 
-    for (const ext of selectedExtensions) {
+    for (const ext of selectedExtensions!) {
         const newPath = path.join(targetDir, `${newFileName}${ext}`);
-        await processFile("create", undefined, newPath, workspacePath);
+        await processFile("create", undefined, newPath, workspacePath!);
     }
 }
 
@@ -221,7 +220,7 @@ async function jumpToRelatedFile() {
 
     const relatedFiles = getRelatedFiles(
         currentDir,
-        currentFileNameWithoutExt,
+        currentFileNameWithoutExt!,
         selectedExtensions
     );
 
@@ -480,7 +479,7 @@ async function bulkReplace() {
 
     const filesToProcess = getRelatedFiles(
         currentDir,
-        currentFileNameWithoutExt,
+        currentFileNameWithoutExt!,
         selectedExtensions
     );
 
