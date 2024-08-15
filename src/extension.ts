@@ -78,7 +78,7 @@ async function renameFiles() {
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo();
+    } = await getCommonInfo("rename");
     if (!currentDir) return;
 
     const newFileName = await promptForNewFileName(
@@ -109,7 +109,7 @@ async function copyFiles() {
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo();
+    } = await getCommonInfo("copy");
     if (!currentDir) return;
 
     const newFileName = await promptForNewFileName(
@@ -140,7 +140,7 @@ async function deleteFiles() {
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo();
+    } = await getCommonInfo("delete");
     if (!currentDir) return;
 
     const filesToProcess = getRelatedFiles(
@@ -161,7 +161,7 @@ async function moveFiles() {
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo();
+    } = await getCommonInfo("move");
     if (!currentDir) return;
 
     const newFileName = await promptForNewFileName(
@@ -193,7 +193,7 @@ async function moveFiles() {
 }
 
 async function createFiles() {
-    const { selectedExtensions, workspacePath } = await getCommonInfo(true);
+    const { selectedExtensions, workspacePath } = await getCommonInfo("create");
 
     const newFileName = await promptForNewFileName("create");
     if (!newFileName) return;
@@ -213,7 +213,7 @@ async function jumpToRelatedFile() {
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo();
+    } = await getCommonInfo("jump to");
     if (!currentDir) return;
 
     const relatedFiles = getRelatedFiles(
@@ -250,15 +250,15 @@ async function jumpToRelatedFile() {
     }
 }
 
-async function getCommonInfo(isCreate = false) {
+async function getCommonInfo(action: string) {
     let currentDir: string | undefined;
     let currentFileNameWithoutExt: string | undefined;
     let workspaceFolder: vscode.WorkspaceFolder | undefined;
 
-    if (!isCreate) {
+    if (action !== "create") {
         const editor = vscode.window.activeTextEditor;
         if (!editor) {
-            vscode.window.showErrorMessage("No active file");
+            vscode.window.showErrorMessage(`No active file to ${action}`);
             return {};
         }
 
@@ -280,7 +280,7 @@ async function getCommonInfo(isCreate = false) {
     }
 
     const workspacePath = workspaceFolder.uri.fsPath;
-    const selectedExtensions = await promptForExtensions();
+    const selectedExtensions = await promptForExtensions(action);
     if (!selectedExtensions) return {};
 
     return {
@@ -291,7 +291,7 @@ async function getCommonInfo(isCreate = false) {
     };
 }
 
-async function promptForExtensions() {
+async function promptForExtensions(action: string) {
     const config = vscode.workspace.getConfiguration("fileOrchestrator");
     const defaultExtensions = config.get<string[]>("defaultExtensions") || [];
     const customExtensionLists =
@@ -310,7 +310,7 @@ async function promptForExtensions() {
     );
 
     const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
-        placeHolder: "Select extension list to apply",
+        placeHolder: `Select extension list to ${action}`,
         matchOnDescription: true,
     });
 
