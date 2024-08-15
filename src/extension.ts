@@ -227,6 +227,12 @@ async function jumpToRelatedFile() {
         return;
     }
 
+    // Get the current file's relative path
+    const currentFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+    const currentRelativePath = currentFile
+        ? path.relative(workspacePath, currentFile)
+        : "Unknown";
+
     const items = relatedFiles.map((file) => {
         const fullPath = path.join(currentDir, file);
         const relativePath = path.relative(workspacePath, fullPath);
@@ -238,7 +244,7 @@ async function jumpToRelatedFile() {
     });
 
     const selectedFile = await vscode.window.showQuickPick(items, {
-        placeHolder: "Select a file to jump to",
+        placeHolder: `Select a file to jump to (from ${currentRelativePath})`,
         matchOnDescription: true,
         matchOnDetail: true,
     });
