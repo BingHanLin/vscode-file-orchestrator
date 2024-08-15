@@ -13,7 +13,8 @@ export function activate(context: vscode.ExtensionContext) {
         { name: "deleteFile", action: deleteFiles },
         { name: "moveFile", action: moveFiles },
         { name: "createFile", action: createFiles },
-        { name: "jumpToRelatedFile", action: jumpToRelatedFile }, // New command
+        { name: "jumpToRelatedFile", action: jumpToRelatedFile },
+        { name: "bulkReplace", action: bulkReplace },
     ];
 
     commands.forEach(({ name, action }) => {
@@ -409,6 +410,81 @@ function getRelatedFiles(
         const { name, ext } = path.parse(file);
         return name === baseName && extensions.includes(ext);
     });
+}
+
+async function bulkReplace() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor) {
+        vscode.window.showErrorMessage("No active editor found");
+        return;
+    }
+
+    const selection = editor.selection;
+    const searchPattern = editor.document.getText(selection);
+    if (!searchPattern) {
+        vscode.window.showErrorMessage("Please select text to replace");
+        return;
+    }
+
+    const {
+        currentDir,
+        currentFileNameWithoutExt,
+        selectedExtensions,
+        workspacePath,
+    } = await getCommonInfo("bulk replace");
+    if (!currentDir) return;
+
+    const replacePattern = await vscode.window.showInputBox({
+        prompt: `Enter replace pattern for "${searchPattern}"`,
+        placeHolder: searchPattern,
+        value: searchPattern,
+    });
+    if (replacePattern === undefined) return;
+
+    const filesToProcess = getRelatedFiles(
+        currentDir,
+        currentFileNameWithoutExt,
+        selectedExtensions
+    );
+
+    let replacedCount = 0;
+    for (const file of filesToProcess) {
+        const filePath = path.join(currentDir, file);
+        replacedCount += await replaceInFile(
+            filePath,
+            searchPattern,
+            replacePattern
+        );
+    }
+
+    vscode.window.showInformationMessage(
+        `Bulk replace completed. ${replacedCount} occurrences replaced.`
+    );
+}
+
+async function replaceInFile(
+    filePath: string,
+    search: string,
+    replace: string
+): Promise<number> {
+    const document = await vscode.workspace.openTextDocument(filePath);
+    const text = document.getText();
+    const regex = new RegExp(search, "g");
+    const newText = text.replace(regex, replace);
+    const replacedCount = (text.match(regex) || []).length;
+
+    if (replacedCount > 0) {
+        const edit = new vscode.WorkspaceEdit();
+        edit.replace(
+            document.uri,
+            new vscode.Range(0, 0, document.lineCount, 0),
+            newText
+        );
+        await vscode.workspace.applyEdit(edit);
+        await document.save();
+    }
+
+    return replacedCount;
 }
 
 export function deactivate() {}

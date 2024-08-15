@@ -39,6 +39,10 @@
       {
         "command": "file-orchestrator.jumpToRelatedFile",
         "title": "File Orchestrator: Jump To Related File"
+      },
+      {
+        "command": "file-orchestrator.bulkReplace",
+        "title": "File Orchestrator: String Replace In Related Files"
       }
     ],
     "keybindings": [
