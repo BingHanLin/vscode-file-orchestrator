@@ -172,11 +172,14 @@ async function moveFiles() {
     );
     if (!newFileName) return;
 
-    const targetDir = await promptForTargetDirectory(
-        workspacePath,
-        path.relative(workspacePath, currentDir)
-    );
+    const targetDir = await promptForTargetDirectory(currentDir);
+
     if (!targetDir) return;
+
+    // Check if targetDir exists, if not, create it
+    if (!fs.existsSync(targetDir)) {
+        await fs.promises.mkdir(targetDir, { recursive: true });
+    }
 
     const filesToProcess = getRelatedFiles(
         currentDir,
@@ -195,13 +198,20 @@ async function moveFiles() {
 }
 
 async function createFiles() {
-    const { selectedExtensions, workspacePath } = await getCommonInfo("create");
+    const { currentDir, selectedExtensions, workspacePath } =
+        await getCommonInfo("create");
+    if (!workspacePath) return;
 
     const newFileName = await promptForNewFileName("create");
     if (!newFileName) return;
 
-    const targetDir = await promptForTargetDirectory(workspacePath!);
+    const targetDir = await promptForTargetDirectory(workspacePath);
     if (!targetDir) return;
+
+    // Check if targetDir exists, if not, create it
+    if (!fs.existsSync(targetDir)) {
+        await fs.promises.mkdir(targetDir, { recursive: true });
+    }
 
     for (const ext of selectedExtensions!) {
         const newPath = path.join(targetDir, `${newFileName}${ext}`);
@@ -370,28 +380,17 @@ async function promptForNewFileName(action: string, currentName = "") {
     });
 }
 
-async function promptForTargetDirectory(
-    workspacePath: string,
-    defaultValue = ""
-) {
+async function promptForTargetDirectory(basePath: string, defaultValue = "") {
     const userInput = await vscode.window.showInputBox({
-        prompt: "Enter target directory (relative to workspace root)",
+        prompt: "Enter target directory (relative to current directory)",
         value: defaultValue,
-        validateInput: (value) => {
-            const absolutePath = path.join(workspacePath, value);
-            if (fs.existsSync(absolutePath)) {
-                return null;
-            } else {
-                return `Directory ${absolutePath} does not exist.`;
-            }
-        },
     });
 
     if (userInput === undefined) {
         return undefined;
     }
 
-    return path.join(workspacePath, userInput);
+    return path.join(basePath, userInput);
 }
 
 async function processFile(
