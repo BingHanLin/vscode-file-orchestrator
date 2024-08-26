@@ -198,11 +198,15 @@ async function moveFiles() {
 }
 
 async function createFiles() {
-    const { currentDir, selectedExtensions, workspacePath } =
-        await getCommonInfo("create");
+    const {
+        currentDir,
+        currentFileNameWithoutExt,
+        selectedExtensions,
+        workspacePath,
+    } = await getCommonInfo("create");
     if (!workspacePath) return;
 
-    const newFileName = await promptForNewFileName("create");
+    const newFileName = await promptForNewFileName("create", "NewFile");
     if (!newFileName) return;
 
     const targetDir = await promptForTargetDirectory(workspacePath);
@@ -382,15 +386,15 @@ async function promptForNewFileName(action: string, currentName = "") {
 
 async function promptForTargetDirectory(basePath: string, defaultValue = "") {
     const userInput = await vscode.window.showInputBox({
-        prompt: "Enter target directory (relative to current directory)",
-        value: defaultValue,
+        prompt: "Enter target directory",
+        value: `${basePath}`,
     });
 
     if (userInput === undefined) {
         return undefined;
     }
 
-    return path.join(basePath, userInput);
+    return userInput;
 }
 
 async function processFile(
