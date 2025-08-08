@@ -11,6 +11,7 @@ File Orchestrator is a powerful VS Code extension that simplifies file managemen
 -   **Create Files**: Create new files with specified extensions in a chosen directory.
 -   **Jump to Related Files**: Quickly navigate between related files.
 -   **Bulk Replace**: Perform string replacements across related files.
+-   **Open All Related Files in New Group**: Open all related files as tabs in a new editor group (horizontal split).
 -   **Customizable Extension Lists**: Define and use custom lists of related file extensions.
 
 ## Installation
@@ -33,6 +34,7 @@ File Orchestrator adds the following commands to the Command Palette (Ctrl+Shift
 -   `File Orchestrator: Create File`
 -   `File Orchestrator: Jump To Related File`
 -   `File Orchestrator: String Replace In Related Files`
+-   `File Orchestrator: Open All Related Files`
 
 ### Workflow
 
@@ -121,6 +123,12 @@ You can configure a custom keyboard shortcut for the "Jump To Related File" comm
 2. Run `File Orchestrator: String Replace In Related Files`
 3. Enter the replacement text
 4. The extension will perform the replacement in all related files
+
+### Open All Related Files in a New Group
+
+1. Open any file you want to use as the base.
+2. Run `File Orchestrator: Open All Related Files`.
+3. All related files will be opened as tabs in a new horizontal editor group, making it easy to compare and edit them side by side.
 
 ## Contributing
 

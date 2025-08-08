@@ -7,6 +7,7 @@ export function activate(context: vscode.ExtensionContext) {
         'Congratulations, your extension "file-orchestrator" is now active!'
     );
 
+
     const commands = [
         { name: "renameFile", action: renameFiles },
         { name: "copyFile", action: copyFiles },
@@ -15,6 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
         { name: "createFile", action: createFiles },
         { name: "jumpToRelatedFile", action: jumpToRelatedFile },
         { name: "bulkReplace", action: bulkReplace },
+        { name: "openAllRelatedFiles", action: openAllRelatedFiles },
     ];
 
     commands.forEach(({ name, action }) => {
@@ -24,6 +26,46 @@ export function activate(context: vscode.ExtensionContext) {
         );
         context.subscriptions.push(command);
     });
+
+    async function openAllRelatedFiles() {
+        const {
+            currentDir,
+            currentFileNameWithoutExt,
+            selectedExtensions,
+            workspacePath,
+        } = await getCommonInfo("open all");
+        if (!currentDir) return;
+
+        const relatedFiles = getRelatedFiles(
+            currentDir,
+            currentFileNameWithoutExt!,
+            selectedExtensions
+        );
+
+        if (relatedFiles.length === 0) {
+            vscode.window.showInformationMessage("No related files found.");
+            return;
+        }
+
+        let targetColumn = vscode.ViewColumn.Beside;
+        let firstEditor: vscode.TextEditor | undefined;
+        for (let i = 0; i < relatedFiles.length; i++) {
+            const file = relatedFiles[i];
+            const filePath = path.join(currentDir, file);
+            try {
+                const document = await vscode.workspace.openTextDocument(filePath);
+                if (i === 0) {
+                    const editor: vscode.TextEditor = await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true, viewColumn: targetColumn });
+                    firstEditor = editor;
+                    targetColumn = editor.viewColumn ?? vscode.ViewColumn.Three;
+                } else {
+                    await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true, viewColumn: targetColumn });
+                }
+            } catch (err) {
+                vscode.window.showWarningMessage(`Failed to open ${file}: ${err}`);
+            }
+        }
+    }
 
     // Register the configurable keybinding
     context.subscriptions.push(
@@ -431,8 +473,7 @@ async function processFile(
         }
         const actionPastTense = action === "copy" ? "copied" : `${action}d`;
         vscode.window.showInformationMessage(
-            `File ${actionPastTense}: ${oldPath ? path.basename(oldPath) : ""}${
-                newPath ? ` -> ${path.relative(workspacePath, newPath)}` : ""
+            `File ${actionPastTense}: ${oldPath ? path.basename(oldPath) : ""}${newPath ? ` -> ${path.relative(workspacePath, newPath)}` : ""
             }`
         );
     } catch (error) {
@@ -526,4 +567,4 @@ async function replaceInFile(
     return replacedCount;
 }
 
-export function deactivate() {}
+export function deactivate() { }
