@@ -12,7 +12,9 @@ File Orchestrator is a powerful VS Code extension that simplifies file managemen
 -   **Jump to Related Files**: Quickly navigate between related files.
 -   **Bulk Replace**: Perform string replacements across related files.
 -   **Open All Related Files in New Group**: Open all related files as tabs in a new editor group (horizontal split).
--   **Customizable Extension Lists**: Define and use custom lists of related file extensions.
+-   **Customizable Extension Groups**: Define and use custom groups of related file extensions for different project types.
+-   **Related Files Sidebar**: View and open all related files for the current file in a dedicated sidebar panel.
+-   **Commands Sidebar**: Trigger all File Orchestrator commands directly from a sidebar panel.
 
 ## Installation
 
@@ -22,6 +24,13 @@ File Orchestrator is a powerful VS Code extension that simplifies file managemen
 4. Click Install
 
 ## Usage
+
+### Side Bar Panels
+
+File Orchestrator adds a dedicated sidebar (activity bar) with two panels:
+
+-   **Related Files**: Shows all files related to the currently focused file. Click to open any related file.
+-   **Commands**: Lists all File Orchestrator commands. Click to trigger any command directly.
 
 ### Commands
 
@@ -39,13 +48,13 @@ File Orchestrator adds the following commands to the Command Palette (Ctrl+Shift
 ### Workflow
 
 1. Open a file in the editor.
-2. Run one of the File Orchestrator commands.
-3. Select the extension list to apply (Default or custom lists).
+2. Run one of the File Orchestrator commands, or trigger a command directly from the Commands sidebar panel.
+3. The extension group (default or custom) will be applied automatically. You can switch the active group via the sidebar or command palette.
 4. Follow the prompts to complete the operation.
 
 ### Extension Lists
 
-File Orchestrator uses extension lists to determine which related files to include in operations. You can configure these lists in your VS Code settings.
+File Orchestrator uses extension groups to determine which related files to include in operations. You can configure these groups in your VS Code settings.
 
 #### Default Extensions
 
@@ -66,11 +75,11 @@ Set the default extensions in your `settings.json`:
 
 #### Custom Extension Lists
 
-Define custom extension lists for different project types:
+Define custom extension groups for different project types:
 
 ```json
 {
-    "fileOrchestrator.customExtensionLists": {
+    "fileOrchestrator.customExtensionGroups": {
         "Qt-Cpp": [".cpp", ".hpp", ".cxx", ".hxx", ".c", ".h", ".ui"]
     }
 }
@@ -88,28 +97,22 @@ You can configure a custom keyboard shortcut for the "Jump To Related File" comm
 
 ## Examples
 
-### Renaming a C++ Component
+### Renaming Related Files
 
 1. Open `MyComponent.cpp`
 2. Run `File Orchestrator: Rename File`
-3. Select the "Qt-Cpp" extension list
-4. Enter the new name, e.g., "NewComponent"
-5. The extension will rename:
+3. Enter the new name, e.g., "NewComponent"
+4. The extension will rename:
     - `MyComponent.cpp` to `NewComponent.cpp`
     - `MyComponent.hpp` to `NewComponent.hpp`
     - `MyComponent.ui` to `NewComponent.ui`
 
-### Moving a Vue Component
+### Moving Related Files
 
 1. Open `OldComponent.vue`
 2. Run `File Orchestrator: Move File`
-3. Select the "Vue" extension list
-4. Enter the target directory (relative to workspace root)
-5. Choose whether to rename the file
-6. The extension will move:
-    - `OldComponent.vue`
-    - `OldComponent.js`
-    - `OldComponent.css`
+3. Enter the target directory (relative to workspace root)
+4. Choose whether to rename the file
 
 ### Jumping to Related Files
 
