@@ -20,7 +20,7 @@
         {
           "id": "fileOrchestratorContainer",
           "title": "File Orchestrator",
-          "icon": "images/icon.png"
+          "icon": "images/sidebar_icon.png"
         }
       ]
     },
