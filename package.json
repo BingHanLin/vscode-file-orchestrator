@@ -105,6 +105,14 @@
           "description": "Choose which extension group to use for file operations: 'default' uses fileOrchestrator.defaultExtensions, or select a key from fileOrchestrator.customExtensionGroups."
         }
       }
+    },
+    "views": {
+      "explorer": [
+        {
+          "id": "fileOrchestrator.relatedFilesView",
+          "name": "Related Files"
+        }
+      ]
     }
   },
   "scripts": {
