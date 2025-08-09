@@ -120,6 +120,10 @@
         {
           "id": "fileOrchestrator.relatedFilesView",
           "name": "Related Files"
+        },
+        {
+          "id": "fileOrchestrator.commandsView",
+          "name": "Commands"
         }
       ]
     }

@@ -1,9 +1,13 @@
+import { CommandsProvider } from './commandsView';
 import { RelatedFilesProvider } from './relatedFilesView';
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 
 export function activate(context: vscode.ExtensionContext) {
+    // 註冊 Commands 面板
+    const commandsProvider = new CommandsProvider();
+    vscode.window.registerTreeDataProvider('fileOrchestrator.commandsView', commandsProvider);
 
     const relatedFilesProvider = new RelatedFilesProvider();
     vscode.window.registerTreeDataProvider('fileOrchestrator.relatedFilesView', relatedFilesProvider);
