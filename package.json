@@ -47,6 +47,10 @@
       {
         "command": "file-orchestrator.openAllRelatedFiles",
         "title": "File Orchestrator: Open All Related Files"
+      },
+      {
+        "command": "file-orchestrator.pickActiveExtensionList",
+        "title": "File Orchestrator: Pick Active Extension List"
       }
     ],
     "keybindings": [
@@ -94,6 +98,11 @@
           "type": "string",
           "default": "alt+p",
           "description": "Keyboard shortcut for jumping to related files. Use the format 'ctrl+key', 'shift+key', etc."
+        },
+        "fileOrchestrator.activeExtensionList": {
+          "type": "string",
+          "default": "default",
+          "description": "Choose which extension list to use for file operations: 'default' uses fileOrchestrator.defaultExtensions, or select a key from fileOrchestrator.customExtensionLists."
         }
       }
     }

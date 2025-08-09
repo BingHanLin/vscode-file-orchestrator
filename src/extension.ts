@@ -17,6 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
         { name: "jumpToRelatedFile", action: jumpToRelatedFile },
         { name: "bulkReplace", action: bulkReplace },
         { name: "openAllRelatedFiles", action: openAllRelatedFiles },
+        { name: "pickActiveExtensionList", action: pickActiveExtensionList },
     ];
 
     commands.forEach(({ name, action }) => {
@@ -77,6 +78,22 @@ export function activate(context: vscode.ExtensionContext) {
 
     // Initial setup of the keybinding
     updateJumpToRelatedFileShortcut();
+}
+
+async function pickActiveExtensionList() {
+    const config = vscode.workspace.getConfiguration("fileOrchestrator");
+    const customExtensionLists = config.get<{ [key: string]: string[] }>("customExtensionLists") || {};
+    const options = [
+        { label: "default", description: "Use fileOrchestrator.defaultExtensions" },
+        ...Object.keys(customExtensionLists).map(key => ({ label: key, description: customExtensionLists[key].join(", ") }))
+    ];
+    const selected = await vscode.window.showQuickPick(options, {
+        placeHolder: "Select the active extension list for file operations"
+    });
+    if (selected) {
+        await config.update("activeExtensionList", selected.label, vscode.ConfigurationTarget.Workspace);
+        vscode.window.showInformationMessage(`Active extension list set to: ${selected.label}`);
+    }
 }
 
 async function updateJumpToRelatedFileShortcut() {
@@ -358,54 +375,17 @@ async function getCommonInfo(action: string) {
 async function promptForExtensions(action: string) {
     const config = vscode.workspace.getConfiguration("fileOrchestrator");
     const defaultExtensions = config.get<string[]>("defaultExtensions") || [];
-    const customExtensionLists =
-        config.get<{ [key: string]: string[] }>("customExtensionLists") || {};
+    const customExtensionLists = config.get<{ [key: string]: string[] }>("customExtensionLists") || {};
+    const activeList = config.get<string>("activeExtensionList") || "default";
 
-    const extensionLists: { [key: string]: string[] } = {
-        Default: defaultExtensions,
-        ...customExtensionLists,
-    };
-
-    let quickPickItems: { label: string; description: string }[];
-
-    if (action === "create") {
-        // For create action, show all extension lists
-        quickPickItems = Object.entries(extensionLists).map(
-            ([name, extensions]) => ({
-                label: name,
-                description: extensions.join(", "),
-            })
-        );
-    } else {
-        // For other actions, filter based on active file's extension
-        const activeEditor = vscode.window.activeTextEditor;
-        const activeFileExtension = activeEditor
-            ? path.extname(activeEditor.document.fileName)
-            : "";
-
-        const filteredExtensionLists = Object.entries(extensionLists).filter(
-            ([_, extensions]) => extensions.includes(activeFileExtension)
-        );
-
-        if (filteredExtensionLists.length === 0) {
-            vscode.window.showWarningMessage(
-                `No extension lists found containing ${activeFileExtension}. Command aborted.`
-            );
-            return undefined;
-        }
-
-        quickPickItems = filteredExtensionLists.map(([name, extensions]) => ({
-            label: name,
-            description: extensions.join(", "),
-        }));
+    if (activeList === "default") {
+        return defaultExtensions;
     }
-
-    const selectedItem = await vscode.window.showQuickPick(quickPickItems, {
-        placeHolder: `Select extension list to ${action}`,
-        matchOnDescription: true,
-    });
-
-    return selectedItem ? extensionLists[selectedItem.label] : undefined;
+    if (customExtensionLists[activeList]) {
+        return customExtensionLists[activeList];
+    }
+    vscode.window.showWarningMessage(`Extension list '${activeList}' not found. Using default extensions.`);
+    return defaultExtensions;
 }
 
 async function promptForNewFileName(action: string, currentName = "") {
