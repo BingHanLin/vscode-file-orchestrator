@@ -17,7 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
         { name: "jumpToRelatedFile", action: jumpToRelatedFile },
         { name: "bulkReplace", action: bulkReplace },
         { name: "openAllRelatedFiles", action: openAllRelatedFiles },
-        { name: "pickActiveExtensionList", action: pickActiveExtensionList },
+        { name: "setActiveExtensionGroup", action: setActiveExtensionGroup },
     ];
 
     commands.forEach(({ name, action }) => {
@@ -80,19 +80,20 @@ export function activate(context: vscode.ExtensionContext) {
     updateJumpToRelatedFileShortcut();
 }
 
-async function pickActiveExtensionList() {
+async function setActiveExtensionGroup() {
     const config = vscode.workspace.getConfiguration("fileOrchestrator");
-    const customExtensionLists = config.get<{ [key: string]: string[] }>("customExtensionLists") || {};
+    const customExtensionGroups = config.get<{ [key: string]: string[] }>("customExtensionGroups") || {};
+    const defaultExtensions = config.get<string[]>("defaultExtensions") || [];
     const options = [
-        { label: "default", description: "Use fileOrchestrator.defaultExtensions" },
-        ...Object.keys(customExtensionLists).map(key => ({ label: key, description: customExtensionLists[key].join(", ") }))
+        { label: "Default", description: defaultExtensions.join(", ") },
+        ...Object.keys(customExtensionGroups).map(key => ({ label: key, description: customExtensionGroups[key].join(", ") }))
     ];
     const selected = await vscode.window.showQuickPick(options, {
-        placeHolder: "Select the active extension list for file operations"
+        placeHolder: "Select the active extension group for file operations"
     });
     if (selected) {
-        await config.update("activeExtensionList", selected.label, vscode.ConfigurationTarget.Workspace);
-        vscode.window.showInformationMessage(`Active extension list set to: ${selected.label}`);
+        await config.update("activeExtensionGroup", selected.label, vscode.ConfigurationTarget.Workspace);
+        vscode.window.showInformationMessage(`Active extension group set to: ${selected.label}`);
     }
 }
 
@@ -375,16 +376,16 @@ async function getCommonInfo(action: string) {
 async function promptForExtensions(action: string) {
     const config = vscode.workspace.getConfiguration("fileOrchestrator");
     const defaultExtensions = config.get<string[]>("defaultExtensions") || [];
-    const customExtensionLists = config.get<{ [key: string]: string[] }>("customExtensionLists") || {};
-    const activeList = config.get<string>("activeExtensionList") || "default";
+    const customExtensionGroups = config.get<{ [key: string]: string[] }>("customExtensionGroups") || {};
+    const activeGroup = config.get<string>("activeExtensionGroup") || "default";
 
-    if (activeList === "default") {
+    if (activeGroup === "default") {
         return defaultExtensions;
     }
-    if (customExtensionLists[activeList]) {
-        return customExtensionLists[activeList];
+    if (customExtensionGroups[activeGroup]) {
+        return customExtensionGroups[activeGroup];
     }
-    vscode.window.showWarningMessage(`Extension list '${activeList}' not found. Using default extensions.`);
+    vscode.window.showWarningMessage(`Extension group '${activeGroup}' not found. Using default extensions.`);
     return defaultExtensions;
 }
 
