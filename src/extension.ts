@@ -1,11 +1,28 @@
 import { CommandsProvider } from './commandsView';
 import { RelatedFilesProvider } from './relatedFilesView';
 import { showPreview, PreviewItem } from './previewDialog';
+import { SearchCacheManager } from './searchCache';
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 
+// Global search cache manager
+let searchCacheManager: SearchCacheManager;
+
 export function activate(context: vscode.ExtensionContext) {
+    // Initialize search cache manager
+    searchCacheManager = new SearchCacheManager();
+    context.subscriptions.push(searchCacheManager);
+
+    // Listen for configuration changes to update cache settings
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(e => {
+            if (e.affectsConfiguration('fileOrchestrator.enableCache')) {
+                searchCacheManager.updateConfiguration();
+            }
+        })
+    );
+
     // Register Commands view
     const commandsProvider = new CommandsProvider();
     vscode.window.registerTreeDataProvider('fileOrchestrator.commandsView', commandsProvider);
@@ -46,24 +63,30 @@ export function activate(context: vscode.ExtensionContext) {
         } = await getCommonInfo("open all", uri);
         if (!currentDir) return;
 
-        const relatedFiles = getRelatedFiles(
-            currentDir,
-            currentFileNameWithoutExt!,
-            selectedExtensions
-        );
+        const relatedFileUris = await vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Searching for related files...",
+            cancellable: false
+        }, async () => {
+            return await getRelatedFilesAdvanced(
+                currentFileNameWithoutExt!,
+                selectedExtensions,
+                currentDir,
+                workspacePath!
+            );
+        });
 
-        if (relatedFiles.length === 0) {
+        if (relatedFileUris.length === 0) {
             vscode.window.showInformationMessage("No related files found.");
             return;
         }
 
         let targetColumn = vscode.ViewColumn.Beside;
         let firstEditor: vscode.TextEditor | undefined;
-        for (let i = 0; i < relatedFiles.length; i++) {
-            const file = relatedFiles[i];
-            const filePath = path.join(currentDir, file);
+        for (let i = 0; i < relatedFileUris.length; i++) {
+            const fileUri = relatedFileUris[i];
             try {
-                const document = await vscode.workspace.openTextDocument(filePath);
+                const document = await vscode.workspace.openTextDocument(fileUri);
                 if (i === 0) {
                     const editor: vscode.TextEditor = await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true, viewColumn: targetColumn });
                     firstEditor = editor;
@@ -72,7 +95,7 @@ export function activate(context: vscode.ExtensionContext) {
                     await vscode.window.showTextDocument(document, { preview: false, preserveFocus: true, viewColumn: targetColumn });
                 }
             } catch (err) {
-                vscode.window.showWarningMessage(`Failed to open ${file}: ${err}`);
+                vscode.window.showWarningMessage(`Failed to open ${path.basename(fileUri.fsPath)}: ${err}`);
             }
         }
     }
@@ -159,16 +182,23 @@ async function renameFiles(uri?: vscode.Uri) {
     );
     if (!newFileName) return;
 
-    const filesToProcess = getRelatedFiles(
-        currentDir!,
-        currentFileNameWithoutExt!,
-        selectedExtensions!
-    );
+    const relatedFileUris = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Searching for related files...",
+        cancellable: false
+    }, async () => {
+        return await getRelatedFilesAdvanced(
+            currentFileNameWithoutExt!,
+            selectedExtensions!,
+            currentDir!,
+            workspacePath!
+        );
+    });
 
     // Create preview items
-    const previewItems: PreviewItem[] = filesToProcess.map((file) => ({
-        oldPath: path.join(currentDir!, file),
-        newPath: path.join(currentDir!, `${newFileName}${path.extname(file)}`),
+    const previewItems: PreviewItem[] = relatedFileUris.map((fileUri) => ({
+        oldPath: fileUri.fsPath,
+        newPath: path.join(path.dirname(fileUri.fsPath), `${newFileName}${path.extname(fileUri.fsPath)}`),
         action: "rename",
     }));
 
@@ -177,11 +207,11 @@ async function renameFiles(uri?: vscode.Uri) {
     if (!confirmed) return;
 
     // Execute the rename operation
-    for (const file of filesToProcess) {
-        const oldPath = path.join(currentDir!, file);
+    for (const fileUri of relatedFileUris) {
+        const oldPath = fileUri.fsPath;
         const newPath = path.join(
-            currentDir!,
-            `${newFileName}${path.extname(file)}`
+            path.dirname(fileUri.fsPath),
+            `${newFileName}${path.extname(fileUri.fsPath)}`
         );
         await processFile("rename", oldPath, newPath, workspacePath!);
     }
@@ -202,17 +232,24 @@ async function copyFiles(uri?: vscode.Uri) {
     );
     if (!newFileName) return;
 
-    const filesToProcess = getRelatedFiles(
-        currentDir,
-        currentFileNameWithoutExt!,
-        selectedExtensions
-    );
-
-    for (const file of filesToProcess) {
-        const oldPath = path.join(currentDir, file);
-        const newPath = path.join(
+    const relatedFileUris = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Searching for related files...",
+        cancellable: false
+    }, async () => {
+        return await getRelatedFilesAdvanced(
+            currentFileNameWithoutExt!,
+            selectedExtensions,
             currentDir,
-            `${newFileName}${path.extname(file)}`
+            workspacePath
+        );
+    });
+
+    for (const fileUri of relatedFileUris) {
+        const oldPath = fileUri.fsPath;
+        const newPath = path.join(
+            path.dirname(fileUri.fsPath),
+            `${newFileName}${path.extname(fileUri.fsPath)}`
         );
         await processFile("copy", oldPath, newPath, workspacePath);
     }
@@ -227,15 +264,22 @@ async function deleteFiles(uri?: vscode.Uri) {
     } = await getCommonInfo("delete", uri);
     if (!currentDir) return;
 
-    const filesToProcess = getRelatedFiles(
-        currentDir,
-        currentFileNameWithoutExt!,
-        selectedExtensions
-    );
+    const relatedFileUris = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Searching for related files...",
+        cancellable: false
+    }, async () => {
+        return await getRelatedFilesAdvanced(
+            currentFileNameWithoutExt!,
+            selectedExtensions,
+            currentDir,
+            workspacePath
+        );
+    });
 
     // Create preview items
-    const previewItems: PreviewItem[] = filesToProcess.map((file) => ({
-        oldPath: path.join(currentDir, file),
+    const previewItems: PreviewItem[] = relatedFileUris.map((fileUri) => ({
+        oldPath: fileUri.fsPath,
         action: "delete",
     }));
 
@@ -244,9 +288,8 @@ async function deleteFiles(uri?: vscode.Uri) {
     if (!confirmed) return;
 
     // Execute the delete operation
-    for (const file of filesToProcess) {
-        const oldPath = path.join(currentDir, file);
-        await processFile("delete", oldPath, undefined, workspacePath);
+    for (const fileUri of relatedFileUris) {
+        await processFile("delete", fileUri.fsPath, undefined, workspacePath);
     }
 }
 
@@ -274,16 +317,23 @@ async function moveFiles(uri?: vscode.Uri) {
         await fs.promises.mkdir(targetDir, { recursive: true });
     }
 
-    const filesToProcess = getRelatedFiles(
-        currentDir,
-        currentFileNameWithoutExt!,
-        selectedExtensions
-    );
+    const relatedFileUris = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Searching for related files...",
+        cancellable: false
+    }, async () => {
+        return await getRelatedFilesAdvanced(
+            currentFileNameWithoutExt!,
+            selectedExtensions,
+            currentDir,
+            workspacePath
+        );
+    });
 
     // Create preview items
-    const previewItems: PreviewItem[] = filesToProcess.map((file) => ({
-        oldPath: path.join(currentDir, file),
-        newPath: path.join(targetDir, `${newFileName}${path.extname(file)}`),
+    const previewItems: PreviewItem[] = relatedFileUris.map((fileUri) => ({
+        oldPath: fileUri.fsPath,
+        newPath: path.join(targetDir, `${newFileName}${path.extname(fileUri.fsPath)}`),
         action: "move",
     }));
 
@@ -292,11 +342,11 @@ async function moveFiles(uri?: vscode.Uri) {
     if (!confirmed) return;
 
     // Execute the move operation
-    for (const file of filesToProcess) {
-        const oldPath = path.join(currentDir, file);
+    for (const fileUri of relatedFileUris) {
+        const oldPath = fileUri.fsPath;
         const newPath = path.join(
             targetDir,
-            `${newFileName}${path.extname(file)}`
+            `${newFileName}${path.extname(fileUri.fsPath)}`
         );
         await processFile("move", oldPath, newPath, workspacePath);
     }
@@ -337,13 +387,20 @@ async function jumpToRelatedFile(uri?: vscode.Uri) {
     } = await getCommonInfo("jump to", uri);
     if (!currentDir) return;
 
-    const relatedFiles = getRelatedFiles(
-        currentDir,
-        currentFileNameWithoutExt!,
-        selectedExtensions
-    );
+    const relatedFileUris = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Searching for related files...",
+        cancellable: false
+    }, async () => {
+        return await getRelatedFilesAdvanced(
+            currentFileNameWithoutExt!,
+            selectedExtensions,
+            currentDir,
+            workspacePath
+        );
+    });
 
-    if (relatedFiles.length === 0) {
+    if (relatedFileUris.length === 0) {
         vscode.window.showInformationMessage("No related files found.");
         return;
     }
@@ -354,25 +411,32 @@ async function jumpToRelatedFile(uri?: vscode.Uri) {
         ? path.relative(workspacePath, currentFile)
         : "Unknown";
 
-    const items = relatedFiles.map((file) => {
-        const fullPath = path.join(currentDir, file);
-        const relativePath = path.relative(workspacePath, fullPath);
+    // Get search scope for display
+    const config = vscode.workspace.getConfiguration('fileOrchestrator');
+    const searchScope = config.get<string>('searchScope', 'workspace');
+    const scopeLabel = searchScope === 'sameDirectory' ? 'same directory' : searchScope === 'workspace' ? 'workspace' : 'custom paths';
+
+    const items = relatedFileUris.map((fileUri) => {
+        const relativePath = path.relative(workspacePath, fileUri.fsPath);
+        const relativeDir = path.dirname(relativePath);
+        const isSameDir = path.dirname(fileUri.fsPath) === currentDir;
+
         return {
-            label: file,
-            description: path.extname(file),
-            detail: relativePath, // This will show the full path relative to the workspace root
+            label: path.basename(fileUri.fsPath),
+            description: isSameDir ? path.extname(fileUri.fsPath) : `$(folder) ${relativeDir}`,
+            detail: relativePath,
+            uri: fileUri
         };
     });
 
     const selectedFile = await vscode.window.showQuickPick(items, {
-        placeHolder: `Select a file to jump to (from ${currentRelativePath})`,
+        placeHolder: `Select a file to jump to (from ${currentRelativePath}) - Searching in: ${scopeLabel}`,
         matchOnDescription: true,
         matchOnDetail: true,
     });
 
     if (selectedFile) {
-        const filePath = path.join(currentDir, selectedFile.label);
-        const document = await vscode.workspace.openTextDocument(filePath);
+        const document = await vscode.workspace.openTextDocument(selectedFile.uri);
         await vscode.window.showTextDocument(document);
     }
 }
@@ -514,7 +578,11 @@ async function processFile(
     }
 }
 
-function getRelatedFiles(
+/**
+ * Legacy synchronous function for same-directory search
+ * Used as fallback for 'sameDirectory' search scope
+ */
+function getRelatedFilesSync(
     dir: string,
     baseName: string,
     extensions: string[]
@@ -523,6 +591,101 @@ function getRelatedFiles(
         const { name, ext } = path.parse(file);
         return name === baseName && extensions.includes(ext);
     });
+}
+
+/**
+ * Advanced cross-directory search for related files
+ * Supports workspace-wide search with caching and performance optimizations
+ */
+async function getRelatedFilesAdvanced(
+    baseName: string,
+    extensions: string[],
+    currentDir: string,
+    workspacePath: string
+): Promise<vscode.Uri[]> {
+    const config = vscode.workspace.getConfiguration('fileOrchestrator');
+    const searchScope = config.get<string>('searchScope', 'workspace');
+    const enableCache = config.get<boolean>('enableCache', true);
+    const searchTimeout = config.get<number>('searchTimeout', 5000);
+    const excludePatterns = config.get<string[]>('searchExclude', []);
+    const customSearchPaths = config.get<string[]>('customSearchPaths', []);
+
+    // Check cache first
+    if (enableCache) {
+        const cached = searchCacheManager.get(baseName, extensions, searchScope);
+        if (cached) {
+            return cached;
+        }
+    }
+
+    // For same directory scope, use legacy sync function
+    if (searchScope === 'sameDirectory') {
+        const files = getRelatedFilesSync(currentDir, baseName, extensions);
+        const uris = files.map(file => vscode.Uri.file(path.join(currentDir, file)));
+        if (enableCache) {
+            searchCacheManager.set(baseName, extensions, searchScope, uris);
+        }
+        return uris;
+    }
+
+    // Build search patterns for workspace or custom paths
+    const patterns = extensions.map(ext => `**/${baseName}${ext}`);
+    const includePattern = patterns.length === 1 ? patterns[0] : `{${patterns.join(',')}}`;
+    const excludePattern = excludePatterns.length > 0 ? `{${excludePatterns.join(',')}}` : undefined;
+
+    // Create a promise that will timeout
+    const timeoutPromise = new Promise<vscode.Uri[]>((_, reject) => {
+        setTimeout(() => reject(new Error('Search timeout')), searchTimeout);
+    });
+
+    try {
+        let searchPromise: Promise<vscode.Uri[]>;
+
+        if (searchScope === 'customPaths' && customSearchPaths.length > 0) {
+            // Search in custom paths
+            const customPatterns = customSearchPaths.flatMap(customPath =>
+                extensions.map(ext => `${customPath}/${baseName}${ext}`)
+            );
+            const customIncludePattern = customPatterns.length === 1 ? customPatterns[0] : `{${customPatterns.join(',')}}`;
+            searchPromise = Promise.resolve(vscode.workspace.findFiles(customIncludePattern, excludePattern));
+        } else {
+            // Workspace-wide search
+            searchPromise = Promise.resolve(vscode.workspace.findFiles(includePattern, excludePattern));
+        }
+
+        // Race between search and timeout
+        const files = await Promise.race([searchPromise, timeoutPromise]);
+
+        // Cache the results
+        if (enableCache) {
+            searchCacheManager.set(baseName, extensions, searchScope, files);
+        }
+
+        return files;
+    } catch (error) {
+        if (error instanceof Error && error.message === 'Search timeout') {
+            vscode.window.showWarningMessage(
+                `File search timed out after ${searchTimeout}ms. Try reducing search scope or increasing timeout in settings.`
+            );
+        }
+        // Fallback to same directory search
+        const files = getRelatedFilesSync(currentDir, baseName, extensions);
+        return files.map(file => vscode.Uri.file(path.join(currentDir, file)));
+    }
+}
+
+/**
+ * Unified wrapper for getting related files
+ * Automatically chooses between sync and async search based on configuration
+ */
+function getRelatedFiles(
+    dir: string,
+    baseName: string,
+    extensions: string[]
+): string[] {
+    // For backward compatibility, this function remains synchronous
+    // and only works for same-directory search
+    return getRelatedFilesSync(dir, baseName, extensions);
 }
 
 async function bulkReplace(uri?: vscode.Uri) {
@@ -554,17 +717,23 @@ async function bulkReplace(uri?: vscode.Uri) {
     });
     if (replacePattern === undefined) return;
 
-    const filesToProcess = getRelatedFiles(
-        currentDir,
-        currentFileNameWithoutExt!,
-        selectedExtensions
-    );
+    const relatedFileUris = await vscode.window.withProgress({
+        location: vscode.ProgressLocation.Notification,
+        title: "Searching for related files...",
+        cancellable: false
+    }, async () => {
+        return await getRelatedFilesAdvanced(
+            currentFileNameWithoutExt!,
+            selectedExtensions,
+            currentDir,
+            workspacePath
+        );
+    });
 
     let replacedCount = 0;
-    for (const file of filesToProcess) {
-        const filePath = path.join(currentDir, file);
+    for (const fileUri of relatedFileUris) {
         replacedCount += await replaceInFile(
-            filePath,
+            fileUri.fsPath,
             searchPattern,
             replacePattern
         );
