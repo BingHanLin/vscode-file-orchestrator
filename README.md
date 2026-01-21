@@ -4,6 +4,9 @@ File Orchestrator is a powerful VS Code extension that simplifies file managemen
 
 ## Features
 
+-   **Cross-Directory Search**: Search for related files across the entire workspace, not just in the same directory (NEW!).
+-   **Smart Caching**: Intelligent caching with automatic invalidation for faster consecutive searches.
+-   **Configurable Search Scope**: Choose between same directory, workspace-wide, or custom path patterns.
 -   **Context Menu Integration**: Right-click on any file in the Explorer to access all File Orchestrator commands.
 -   **Operation Preview**: Preview and confirm files before renaming, moving, or deleting them.
 -   **Rename Files**: Rename a file and all its related files with different extensions.
@@ -105,6 +108,56 @@ You can configure a custom keyboard shortcut for the "Jump To Related File" comm
 ```json
 {
     "fileOrchestrator.jumpToRelatedFileShortcut": "alt+p"
+}
+```
+
+### Search Configuration
+
+File Orchestrator now supports cross-directory search with configurable options:
+
+#### Search Scope
+
+Choose where to search for related files:
+
+```json
+{
+    "fileOrchestrator.searchScope": "workspace"  // "sameDirectory" | "workspace" | "customPaths"
+}
+```
+
+-   **sameDirectory**: Search only in the same directory as the current file (fastest, original behavior)
+-   **workspace**: Search across the entire workspace with smart caching (recommended, new default)
+-   **customPaths**: Search in specific directory patterns defined in `customSearchPaths`
+
+#### Performance Options
+
+Configure search behavior for optimal performance:
+
+```json
+{
+    "fileOrchestrator.searchTimeout": 5000,  // Timeout in milliseconds
+    "fileOrchestrator.enableCache": true,     // Enable search result caching
+    "fileOrchestrator.searchExclude": [       // Directories to exclude from search
+        "**/node_modules/**",
+        "**/.git/**",
+        "**/dist/**",
+        "**/build/**"
+    ]
+}
+```
+
+#### Custom Search Paths
+
+When using `searchScope: "customPaths"`, define specific directories to search:
+
+```json
+{
+    "fileOrchestrator.searchScope": "customPaths",
+    "fileOrchestrator.customSearchPaths": [
+        "src/**",
+        "components/**",
+        "tests/**"
+    ]
 }
 ```
 

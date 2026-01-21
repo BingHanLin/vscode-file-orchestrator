@@ -130,6 +130,66 @@
           "type": "string",
           "default": "default",
           "description": "Choose which extension group to use for file operations: 'default' uses fileOrchestrator.defaultExtensions, or select a key from fileOrchestrator.customExtensionGroups."
+        },
+        "fileOrchestrator.searchScope": {
+          "type": "string",
+          "enum": [
+            "sameDirectory",
+            "workspace",
+            "customPaths"
+          ],
+          "default": "workspace",
+          "description": "Where to search for related files: 'sameDirectory' searches only in the same folder, 'workspace' searches the entire workspace, 'customPaths' uses custom directory patterns.",
+          "enumDescriptions": [
+            "Search only in the same directory as the current file (fastest, original behavior)",
+            "Search across the entire workspace (recommended, with smart caching)",
+            "Search in custom directory patterns defined in customSearchPaths"
+          ]
+        },
+        "fileOrchestrator.searchMaxDepth": {
+          "type": "number",
+          "default": 0,
+          "description": "Maximum directory depth for searching related files. Set to 0 for unlimited depth. Higher values improve performance in very deep directory structures."
+        },
+        "fileOrchestrator.searchTimeout": {
+          "type": "number",
+          "default": 5000,
+          "description": "Timeout for file search operations in milliseconds. Prevents freezing on very large projects."
+        },
+        "fileOrchestrator.searchExclude": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [
+            "**/node_modules/**",
+            "**/.git/**",
+            "**/dist/**",
+            "**/build/**",
+            "**/out/**",
+            "**/.vscode/**",
+            "**/coverage/**"
+          ],
+          "description": "Glob patterns to exclude from search. These directories will be skipped to improve performance."
+        },
+        "fileOrchestrator.enableCache": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable caching of search results for better performance. Cache automatically invalidates when files are created, deleted, or renamed."
+        },
+        "fileOrchestrator.customSearchPaths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Custom directory patterns to search when searchScope is set to 'customPaths'. Use glob patterns like 'src/**' or 'components/**'.",
+          "examples": [
+            [
+              "src/**",
+              "test/**"
+            ]
+          ]
         }
       }
     },
