@@ -27,47 +27,56 @@
     "commands": [
       {
         "command": "file-orchestrator.renameFile",
-        "title": "File Orchestrator: Rename File",
+        "title": "Rename File",
+        "category": "File Orchestrator",
         "icon": "$(edit)"
       },
       {
         "command": "file-orchestrator.copyFile",
-        "title": "File Orchestrator: Copy File",
+        "title": "Copy File",
+        "category": "File Orchestrator",
         "icon": "$(copy)"
       },
       {
         "command": "file-orchestrator.deleteFile",
-        "title": "File Orchestrator: Delete File",
+        "title": "Delete File",
+        "category": "File Orchestrator",
         "icon": "$(trash)"
       },
       {
         "command": "file-orchestrator.moveFile",
-        "title": "File Orchestrator: Move File",
+        "title": "Move File",
+        "category": "File Orchestrator",
         "icon": "$(move)"
       },
       {
         "command": "file-orchestrator.createFile",
-        "title": "File Orchestrator: Create File",
+        "title": "Create File",
+        "category": "File Orchestrator",
         "icon": "$(new-file)"
       },
       {
         "command": "file-orchestrator.jumpToRelatedFile",
-        "title": "File Orchestrator: Jump To Related File",
+        "title": "Jump To Related File",
+        "category": "File Orchestrator",
         "icon": "$(link)"
       },
       {
         "command": "file-orchestrator.bulkReplace",
-        "title": "File Orchestrator: String Replace In Related Files",
+        "title": "String Replace In Related Files",
+        "category": "File Orchestrator",
         "icon": "$(find-replace)"
       },
       {
         "command": "file-orchestrator.openAllRelatedFiles",
-        "title": "File Orchestrator: Open All Related Files",
+        "title": "Open All Related Files",
+        "category": "File Orchestrator",
         "icon": "$(split-horizontal)"
       },
       {
         "command": "file-orchestrator.setActiveExtensionGroup",
-        "title": "File Orchestrator: Set Active Extension Group",
+        "title": "Set Active Extension Group",
+        "category": "File Orchestrator",
         "icon": "$(settings-gear)"
       }
     ],
@@ -142,31 +151,38 @@
       "file-orchestrator.submenu": [
         {
           "command": "file-orchestrator.renameFile",
-          "group": "1_operations@1"
+          "group": "1_operations@1",
+          "title": "Rename File"
         },
         {
           "command": "file-orchestrator.copyFile",
-          "group": "1_operations@2"
+          "group": "1_operations@2",
+          "title": "Copy File"
         },
         {
           "command": "file-orchestrator.moveFile",
-          "group": "1_operations@3"
+          "group": "1_operations@3",
+          "title": "Move File"
         },
         {
           "command": "file-orchestrator.deleteFile",
-          "group": "1_operations@4"
+          "group": "1_operations@4",
+          "title": "Delete File"
         },
         {
           "command": "file-orchestrator.jumpToRelatedFile",
-          "group": "2_navigation@1"
+          "group": "2_navigation@1",
+          "title": "Jump To Related File"
         },
         {
           "command": "file-orchestrator.openAllRelatedFiles",
-          "group": "2_navigation@2"
+          "group": "2_navigation@2",
+          "title": "Open All Related Files"
         },
         {
           "command": "file-orchestrator.bulkReplace",
-          "group": "3_advanced@1"
+          "group": "3_advanced@1",
+          "title": "String Replace In Related Files"
         }
       ]
     },
