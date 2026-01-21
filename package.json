@@ -2,7 +2,7 @@
   "name": "file-orchestrator",
   "displayName": "File Orchestrator",
   "description": "Efficiently manage related files in your projects. Rename, copy, move, delete files while automatically handling associated files with different extensions. Customizable for various project types and file structures.",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "publisher": "binghanlin",
   "repository": "https://github.com/BingHanLin/vscode-file-orchestrator",
   "icon": "images/icon.png",
@@ -27,39 +27,48 @@
     "commands": [
       {
         "command": "file-orchestrator.renameFile",
-        "title": "File Orchestrator: Rename File"
+        "title": "File Orchestrator: Rename File",
+        "icon": "$(edit)"
       },
       {
         "command": "file-orchestrator.copyFile",
-        "title": "File Orchestrator: Copy File"
+        "title": "File Orchestrator: Copy File",
+        "icon": "$(copy)"
       },
       {
         "command": "file-orchestrator.deleteFile",
-        "title": "File Orchestrator: Delete File"
+        "title": "File Orchestrator: Delete File",
+        "icon": "$(trash)"
       },
       {
         "command": "file-orchestrator.moveFile",
-        "title": "File Orchestrator: Move File"
+        "title": "File Orchestrator: Move File",
+        "icon": "$(move)"
       },
       {
         "command": "file-orchestrator.createFile",
-        "title": "File Orchestrator: Create File"
+        "title": "File Orchestrator: Create File",
+        "icon": "$(new-file)"
       },
       {
         "command": "file-orchestrator.jumpToRelatedFile",
-        "title": "File Orchestrator: Jump To Related File"
+        "title": "File Orchestrator: Jump To Related File",
+        "icon": "$(link)"
       },
       {
         "command": "file-orchestrator.bulkReplace",
-        "title": "File Orchestrator: String Replace In Related Files"
+        "title": "File Orchestrator: String Replace In Related Files",
+        "icon": "$(find-replace)"
       },
       {
         "command": "file-orchestrator.openAllRelatedFiles",
-        "title": "File Orchestrator: Open All Related Files"
+        "title": "File Orchestrator: Open All Related Files",
+        "icon": "$(split-horizontal)"
       },
       {
         "command": "file-orchestrator.setActiveExtensionGroup",
-        "title": "File Orchestrator: Set Active Extension Group"
+        "title": "File Orchestrator: Set Active Extension Group",
+        "icon": "$(settings-gear)"
       }
     ],
     "keybindings": [
@@ -114,6 +123,52 @@
           "description": "Choose which extension group to use for file operations: 'default' uses fileOrchestrator.defaultExtensions, or select a key from fileOrchestrator.customExtensionGroups."
         }
       }
+    },
+    "submenus": [
+      {
+        "id": "file-orchestrator.submenu",
+        "label": "File Orchestrator",
+        "icon": "$(file-symlink-directory)"
+      }
+    ],
+    "menus": {
+      "explorer/context": [
+        {
+          "submenu": "file-orchestrator.submenu",
+          "group": "2_workspace",
+          "when": "!explorerResourceIsFolder"
+        }
+      ],
+      "file-orchestrator.submenu": [
+        {
+          "command": "file-orchestrator.renameFile",
+          "group": "1_operations@1"
+        },
+        {
+          "command": "file-orchestrator.copyFile",
+          "group": "1_operations@2"
+        },
+        {
+          "command": "file-orchestrator.moveFile",
+          "group": "1_operations@3"
+        },
+        {
+          "command": "file-orchestrator.deleteFile",
+          "group": "1_operations@4"
+        },
+        {
+          "command": "file-orchestrator.jumpToRelatedFile",
+          "group": "2_navigation@1"
+        },
+        {
+          "command": "file-orchestrator.openAllRelatedFiles",
+          "group": "2_navigation@2"
+        },
+        {
+          "command": "file-orchestrator.bulkReplace",
+          "group": "3_advanced@1"
+        }
+      ]
     },
     "views": {
       "fileOrchestratorContainer": [

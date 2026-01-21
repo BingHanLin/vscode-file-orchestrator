@@ -1,11 +1,12 @@
 import { CommandsProvider } from './commandsView';
 import { RelatedFilesProvider } from './relatedFilesView';
+import { showPreview, PreviewItem } from './previewDialog';
 import * as vscode from "vscode";
 import * as path from "path";
 import * as fs from "fs";
 
 export function activate(context: vscode.ExtensionContext) {
-    // 註冊 Commands 面板
+    // Register Commands view
     const commandsProvider = new CommandsProvider();
     vscode.window.registerTreeDataProvider('fileOrchestrator.commandsView', commandsProvider);
 
@@ -36,13 +37,13 @@ export function activate(context: vscode.ExtensionContext) {
         context.subscriptions.push(command);
     });
 
-    async function openAllRelatedFiles() {
+    async function openAllRelatedFiles(uri?: vscode.Uri) {
         const {
             currentDir,
             currentFileNameWithoutExt,
             selectedExtensions,
             workspacePath,
-        } = await getCommonInfo("open all");
+        } = await getCommonInfo("open all", uri);
         if (!currentDir) return;
 
         const relatedFiles = getRelatedFiles(
@@ -141,8 +142,8 @@ async function updateJumpToRelatedFileShortcut() {
     );
 }
 
-async function renameFiles() {
-    const commonInfo = await getCommonInfo("rename");
+async function renameFiles(uri?: vscode.Uri) {
+    const commonInfo = await getCommonInfo("rename", uri);
     if (!commonInfo) return;
 
     const {
@@ -157,12 +158,25 @@ async function renameFiles() {
         currentFileNameWithoutExt
     );
     if (!newFileName) return;
+
     const filesToProcess = getRelatedFiles(
         currentDir!,
         currentFileNameWithoutExt!,
         selectedExtensions!
     );
 
+    // Create preview items
+    const previewItems: PreviewItem[] = filesToProcess.map((file) => ({
+        oldPath: path.join(currentDir!, file),
+        newPath: path.join(currentDir!, `${newFileName}${path.extname(file)}`),
+        action: "rename",
+    }));
+
+    // Show preview and get confirmation
+    const confirmed = await showPreview(previewItems, "Rename");
+    if (!confirmed) return;
+
+    // Execute the rename operation
     for (const file of filesToProcess) {
         const oldPath = path.join(currentDir!, file);
         const newPath = path.join(
@@ -173,13 +187,13 @@ async function renameFiles() {
     }
 }
 
-async function copyFiles() {
+async function copyFiles(uri?: vscode.Uri) {
     const {
         currentDir,
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo("copy");
+    } = await getCommonInfo("copy", uri);
     if (!currentDir) return;
 
     const newFileName = await promptForNewFileName(
@@ -204,13 +218,13 @@ async function copyFiles() {
     }
 }
 
-async function deleteFiles() {
+async function deleteFiles(uri?: vscode.Uri) {
     const {
         currentDir,
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo("delete");
+    } = await getCommonInfo("delete", uri);
     if (!currentDir) return;
 
     const filesToProcess = getRelatedFiles(
@@ -219,19 +233,30 @@ async function deleteFiles() {
         selectedExtensions
     );
 
+    // Create preview items
+    const previewItems: PreviewItem[] = filesToProcess.map((file) => ({
+        oldPath: path.join(currentDir, file),
+        action: "delete",
+    }));
+
+    // Show preview and get confirmation
+    const confirmed = await showPreview(previewItems, "Delete");
+    if (!confirmed) return;
+
+    // Execute the delete operation
     for (const file of filesToProcess) {
         const oldPath = path.join(currentDir, file);
         await processFile("delete", oldPath, undefined, workspacePath);
     }
 }
 
-async function moveFiles() {
+async function moveFiles(uri?: vscode.Uri) {
     const {
         currentDir,
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo("move");
+    } = await getCommonInfo("move", uri);
     if (!currentDir) return;
 
     const newFileName = await promptForNewFileName(
@@ -255,6 +280,18 @@ async function moveFiles() {
         selectedExtensions
     );
 
+    // Create preview items
+    const previewItems: PreviewItem[] = filesToProcess.map((file) => ({
+        oldPath: path.join(currentDir, file),
+        newPath: path.join(targetDir, `${newFileName}${path.extname(file)}`),
+        action: "move",
+    }));
+
+    // Show preview and get confirmation
+    const confirmed = await showPreview(previewItems, "Move");
+    if (!confirmed) return;
+
+    // Execute the move operation
     for (const file of filesToProcess) {
         const oldPath = path.join(currentDir, file);
         const newPath = path.join(
@@ -291,13 +328,13 @@ async function createFiles() {
     }
 }
 
-async function jumpToRelatedFile() {
+async function jumpToRelatedFile(uri?: vscode.Uri) {
     const {
         currentDir,
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo("jump to");
+    } = await getCommonInfo("jump to", uri);
     if (!currentDir) return;
 
     const relatedFiles = getRelatedFiles(
@@ -312,7 +349,7 @@ async function jumpToRelatedFile() {
     }
 
     // Get the current file's relative path
-    const currentFile = vscode.window.activeTextEditor?.document.uri.fsPath;
+    const currentFile = uri?.fsPath ?? vscode.window.activeTextEditor?.document.uri.fsPath;
     const currentRelativePath = currentFile
         ? path.relative(workspacePath, currentFile)
         : "Unknown";
@@ -340,26 +377,33 @@ async function jumpToRelatedFile() {
     }
 }
 
-async function getCommonInfo(action: string) {
+async function getCommonInfo(action: string, uri?: vscode.Uri) {
     let currentDir: string | undefined;
     let currentFileNameWithoutExt: string | undefined;
     let workspaceFolder: vscode.WorkspaceFolder | undefined;
 
     if (action !== "create") {
-        const editor = vscode.window.activeTextEditor;
-        if (!editor) {
-            vscode.window.showErrorMessage(`No active file to ${action}`);
-            return {};
+        // If URI is provided (from context menu), use that; otherwise use active editor
+        let currentFilePath: string;
+        if (uri) {
+            currentFilePath = uri.fsPath;
+            workspaceFolder = vscode.workspace.getWorkspaceFolder(uri);
+        } else {
+            const editor = vscode.window.activeTextEditor;
+            if (!editor) {
+                vscode.window.showErrorMessage(`No active file to ${action}`);
+                return {};
+            }
+            currentFilePath = editor.document.uri.fsPath;
+            workspaceFolder = vscode.workspace.getWorkspaceFolder(
+                editor.document.uri
+            );
         }
 
-        const currentFilePath = editor.document.uri.fsPath;
         currentDir = path.dirname(currentFilePath);
         currentFileNameWithoutExt = path.parse(
             path.basename(currentFilePath)
         ).name;
-        workspaceFolder = vscode.workspace.getWorkspaceFolder(
-            editor.document.uri
-        );
     } else {
         workspaceFolder = vscode.workspace.workspaceFolders?.[0];
     }
@@ -481,7 +525,7 @@ function getRelatedFiles(
     });
 }
 
-async function bulkReplace() {
+async function bulkReplace(uri?: vscode.Uri) {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
         vscode.window.showErrorMessage("No active editor found");
@@ -500,7 +544,7 @@ async function bulkReplace() {
         currentFileNameWithoutExt,
         selectedExtensions,
         workspacePath,
-    } = await getCommonInfo("bulk replace");
+    } = await getCommonInfo("bulk replace", uri);
     if (!currentDir) return;
 
     const replacePattern = await vscode.window.showInputBox({

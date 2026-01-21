@@ -4,6 +4,8 @@ File Orchestrator is a powerful VS Code extension that simplifies file managemen
 
 ## Features
 
+-   **Context Menu Integration**: Right-click on any file in the Explorer to access all File Orchestrator commands.
+-   **Operation Preview**: Preview and confirm files before renaming, moving, or deleting them.
 -   **Rename Files**: Rename a file and all its related files with different extensions.
 -   **Copy Files**: Create copies of a file and its related files.
 -   **Move Files**: Move a file and its related files to a different directory, with an option to rename.
@@ -24,6 +26,17 @@ File Orchestrator is a powerful VS Code extension that simplifies file managemen
 4. Click Install
 
 ## Usage
+
+### Right-Click Menu
+
+The easiest way to use File Orchestrator is through the context menu:
+
+1. Right-click on any file in the Explorer
+2. Select **File Orchestrator** from the menu
+3. Choose your desired operation
+
+All operations will show you a preview of the files that will be affected before making any changes.
+
 
 ### Side Bar Panels
 
